@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Tempo de Espera da Carris</title>
+</head>
+
+<body>
+  <h1>Tempo de Espera <small>da Carris</small></h1>
+
+  <form onsubmit="return onFormSubmit()">
+    <label for="busStop">Código da Paragem</label>
+    <input type="text" name="busStop" value="12007">
+    <button id="getArrivals" type="submit">Obter tempos de espera</button>
+  </form>
+
+  <span id="status"></span>
+
+  <ul id="arrivals"></ul>
+
+  <script>
+    var ESTIMATION_ENDPOINT = `https://carris.tecmic.com/api/v2.5/Estimations/busStop/%1/top/%2`;
+    var ESTIMATION_ENDPOINT_NO_CORS = 'https://cors-anywhere.herokuapp.com/' + ESTIMATION_ENDPOINT;
+
+    var BUSSTOP_ELEM = document.querySelector('input[name="busStop"]');
+    var GET_ARRIVALS_ELEM = document.querySelector('#getArrivals');
+    var STATUS_ELEM = document.querySelector('#status');
+    var ARRIVALS_ELEM = document.querySelector('#arrivals');
+
+    function setStatus(status) {
+      STATUS_ELEM.innerHTML = status;
+    }
+
+    function clearEstimations() {
+      ARRIVALS_ELEM.innerHTML = '';
+    }
+
+    function addEstimation(estimation) {
+      var li = document.createElement("li");
+
+      var estimationTime = new Date(estimation.time);
+      var estimationHour = estimationTime.toLocaleTimeString('pt-PT');
+      var foo = estimationHour.split(':');
+
+      li.innerHTML = `<b>${estimation.routeNumber}</b> - ${estimation.destination}: ${foo[0]}:${foo[1]}`;
+      ARRIVALS_ELEM.append(li);
+    }
+
+    async function getEstimations(busStop, results) {
+      setStatus('A carregar...');
+      clearEstimations();
+
+      try {
+        var response = await fetch(ESTIMATION_ENDPOINT_NO_CORS.replace('%1', busStop).replace('%2', results));
+        var data = await response.json();
+
+        if (!data) {
+          setStatus('Erro: Não foram devolvidos dados');
+          return;
+        }
+
+        if (data.length < 1) {
+          setStatus('Não existem tempos de espera para esta paragem');
+          return;
+        }
+
+        data.forEach(estimation => addEstimation(estimation));
+
+        setStatus(null);
+      } catch (error) {
+        console.error(error);
+        setStatus('Erro: ' + error);
+      }
+    }
+
+    // DOM Events
+    function onFormSubmit(e) {
+      getEstimations(BUSSTOP_ELEM.value, 10);
+      return false;
+    }
+  </script>
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-82113011-3"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'UA-82113011-3');
+  </script>
+
+</body>
+
+</html>
